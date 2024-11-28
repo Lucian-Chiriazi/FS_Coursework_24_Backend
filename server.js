@@ -17,46 +17,79 @@ let dbParams = properties.get("db.params");
 
 const uri = dbPrefix + dbUsername + ":" + dbPwd + dbUrl + dbParams;
 
-// Connecting to MongoDB with Stable API. In this way we do not use deprecated methods
 const {MongoClient, ServerApiVersion, ObjectId} = require("mongodb");
-const client = new MongoClient(uri, { serverApi: ServerApiVersion.v1});
-let db = client.db(dbName);
+const client = new MongoClient(uri, { serverApi: ServerApiVersion.v1 });
 
-
-
+// Create Express app
 const app = express();
-
-// This is to prettify the json that are sent back in the REST services
 app.set('json spaces', 3);
-
-// This enables all the CORS request
 app.use(cors());
-
-//Log in the console incoming requests using morgan
 app.use(morgan("short"));
+app.use(express.json());
 
-// This is used to parse json received in the requests
-app.use(express.json);
+let db;
 
-app.param('collectionName', function(req, res, next, collectionName) {
-  req.collection = db.collection(collectionName);
-  return next();
-});
-
-app.get('/collections/:collectionName', function(req, res, next){
-  req.collection.find({}).toArray(function(err, results) {
-    if(err) {
-      return next(err);
+// Initialize database connection before starting the server
+async function initializeDatabase() {
+    try {
+        await client.connect();
+        db = client.db(dbName);
+        console.log("Connected to MongoDB");
+        
+        // Only start the server after database connection is established
+        const PORT = 3000;
+        app.listen(PORT, () => {
+            console.log(`Server running on http://localhost:${PORT}`);
+        });
+    } catch (err) {
+        console.error("Failed to connect to MongoDB:", err);
+        process.exit(1);
     }
-    res.send(results);
-  })
+}
+
+// Initialize collection parameter middleware
+app.param("collectionName", function (req, res, next, collectionName) {
+    if (!db) {
+        console.error("Database connection is not initialized");
+        return;
+    }
+    req.collection = db.collection(collectionName);
+    return next();
 });
 
-
-
-
-app.use(function(req, res, next){
-  console.log("Incoming request: " + req.url);
-  next();
+app.get('/', function(req, res) { 
+    res.send('Select a collection!');
 });
 
+// Route to get products
+app.get("/collections/:collectionName", async (req, res, next) => {
+    try {
+        const results = await req.collection.find({}).toArray();
+        res.json(results);
+    } catch (err) {
+        console.error("Error fetching data:", err);
+        next(err);
+    }
+});
+
+app.post("/collections/order", async (req, res, next) => {
+  try {
+      const order = req.body;
+
+      // Validate the order data
+      if (!order.name || !order.phone || !order.cart || order.cart.length === 0) {
+          return res.send({ error: "Invalid order data" });
+      }
+
+      // Insert the order into the 'order' collection
+      const result = await db.collection("order").insertOne(order);
+
+      res.send({ message: "Order placed successfully", orderId: result.insertedId });
+  } catch (err) {
+      console.error("Error saving order:", err);
+      next(err);
+  }
+});
+
+// Initialize the database and start the server
+initializeDatabase().catch(console.error);
