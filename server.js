@@ -24,10 +24,36 @@ let db = client.db(dbName);
 
 
 
-let app = express();
+const app = express();
 
-app.use(cors());
+// This is to prettify the json that are sent back in the REST services
 app.set('json spaces', 3);
+
+// This enables all the CORS request
+app.use(cors());
+
+//Log in the console incoming requests using morgan
+app.use(morgan("short"));
+
+// This is used to parse json received in the requests
+app.use(express.json);
+
+app.param('collectionName', function(req, res, next, collectionName) {
+  req.collection = db.collection(collectionName);
+  return next();
+});
+
+app.get('/collections/:collectionName', function(req, res, next){
+  req.collection.find({}).toArray(function(err, results) {
+    if(err) {
+      return next(err);
+    }
+    res.send(results);
+  })
+});
+
+
+
 
 app.use(function(req, res, next){
   console.log("Incoming request: " + req.url);
