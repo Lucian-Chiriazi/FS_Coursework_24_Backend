@@ -36,7 +36,7 @@ async function initializeDatabase() {
         db = client.db(dbName);
         console.log("Connected to MongoDB");
         
-        // Only start the server after database connection is established
+        // Start the server after database connection is established
         const PORT = 3000;
         app.listen(PORT, () => {
             console.log(`Server running on http://localhost:${PORT}`);
@@ -72,6 +72,7 @@ app.get("/collections/:collectionName", async (req, res, next) => {
     }
 });
 
+// Route to insert order
 app.post("/collections/order", async (req, res, next) => {
   try {
       const order = req.body;
@@ -89,6 +90,40 @@ app.post("/collections/order", async (req, res, next) => {
       console.error("Error saving order:", err);
       next(err);
   }
+});
+
+// Route to update a product
+app.put("/collections/lessons/:id", async (req, res, next) => {
+    try {
+
+        console.log("Received PUT request for ID:", req.params.id);
+        console.log("Update Data:", req.body);
+
+
+        const lessonId = req.params.id; // Get the product ID from the URL parameter
+        const updateData = req.body;   // Get the update data from the request body
+
+        // Validate the incoming data
+        if (!lessonId) {
+            return res.status(400).send({ error: "Invalid input: No data to update or missing product ID" });
+        }
+
+        // Use the products collection and update the document
+        const result = await db.collection("products").updateOne(
+            { _id: new ObjectId(lessonId) }, // Find the document by ID
+            { $set: updateData }             // Update the specified fields
+        );
+
+        // // Check if any document was modified
+        // if (result.matchedCount === 0) {
+        //     return res.status(404).send({ error: "Lesson not found" });
+        // }
+
+        res.send({ message: "Lesson updated successfully" });
+    } catch (err) {
+        console.error("Error updating lesson:", err);
+        next(err); // Pass the error to the Express error handler
+    }
 });
 
 // Initialize the database and start the server
