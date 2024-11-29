@@ -114,11 +114,6 @@ app.put("/collections/lessons/:id", async (req, res, next) => {
             { $set: updateData }             // Update the specified fields
         );
 
-        // // Check if any document was modified
-        // if (result.matchedCount === 0) {
-        //     return res.status(404).send({ error: "Lesson not found" });
-        // }
-
         res.send({ message: "Lesson updated successfully" });
     } catch (err) {
         console.error("Error updating lesson:", err);
