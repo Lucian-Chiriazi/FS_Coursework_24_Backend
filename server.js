@@ -121,5 +121,25 @@ app.put("/collections/lessons/:id", async (req, res, next) => {
     }
 });
 
+// Route to search lessons
+app.get("/search", async (req, res, next) => {
+    try {
+      const query = req.query.q || ""; // Get the query string from the request
+      const regex = new RegExp(query, "i"); // Case-insensitive regular expression
+  
+      const results = await db.collection("products").find({
+        $or: [
+          { subject: { $regex: regex } }, // Match "subject" field
+          { location: { $regex: regex } }, // Match "location" field
+        ]
+      }).toArray();
+  
+      res.json(results); // Return the search results as JSON
+    } catch (err) {
+      console.error("Error during search:", err);
+      next(err); // Pass error to Express error handler
+    }
+  });
+
 // Initialize the database and start the server
 initializeDatabase().catch(console.error);
