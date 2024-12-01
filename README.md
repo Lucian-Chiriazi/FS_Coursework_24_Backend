@@ -14,4 +14,4 @@
 
 # Rebder route that returns all the lessons
 
-- https://fs-coursework-24-backend.onrender.com
+- https://fs-coursework-24-backend.onrender.com/collections/products
